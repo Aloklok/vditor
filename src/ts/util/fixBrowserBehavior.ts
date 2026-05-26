@@ -227,7 +227,7 @@ export const listToggle = (vditor: IVditor, range: Range, type: string, cancel =
             } else {
                 if (itemElement.querySelector("input")) {
                     itemElement.parentElement.querySelectorAll("li").forEach((item) => {
-                        item.querySelector("input").remove();
+                        item.querySelector("input")?.remove();
                         item.classList.remove("vditor-task");
                     });
                 }
