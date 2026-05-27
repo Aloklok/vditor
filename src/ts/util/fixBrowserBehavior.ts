@@ -217,32 +217,52 @@ export const listToggle = (vditor: IVditor, range: Range, type: string, cancel =
                 blockElement.remove();
             }
         } else {
-            // 切换
+            // 切换 - 只修改当前选中的 li
             if (type === "check") {
-                itemElement.parentElement.querySelectorAll("li").forEach((item) => {
-                    item.insertAdjacentHTML("afterbegin",
-                        `<input type="checkbox" />${item.textContent.indexOf(" ") === 0 ? "" : " "}`);
-                    item.classList.add("vditor-task");
-                });
+                if (!itemElement.querySelector("input")) {
+                    itemElement.insertAdjacentHTML("afterbegin",
+                        `<input type="checkbox" />${itemElement.textContent.indexOf(" ") === 0 ? "" : " "}`);
+                    itemElement.classList.add("vditor-task");
+                }
             } else {
                 if (itemElement.querySelector("input")) {
-                    itemElement.parentElement.querySelectorAll("li").forEach((item) => {
-                        item.querySelector("input")?.remove();
-                        item.classList.remove("vditor-task");
-                    });
+                    itemElement.querySelector("input")?.remove();
+                    itemElement.classList.remove("vditor-task");
                 }
-                let element;
-                if (type === "list") {
-                    element = document.createElement("ul");
-                    element.setAttribute("data-marker", "*");
+                const parent = itemElement.parentElement;
+                const allItems = Array.from(parent.querySelectorAll(":scope > li"));
+                const hasTaskSiblings = allItems.some(li => li !== itemElement && li.classList.contains("vditor-task"));
+
+                if (hasTaskSiblings) {
+                    // 拆分: 当前项单独成新列表
+                    let newElement;
+                    if (type === "list") {
+                        newElement = document.createElement("ul");
+                        newElement.setAttribute("data-marker", "*");
+                    } else {
+                        newElement = document.createElement("ol");
+                        newElement.setAttribute("data-marker", "1.");
+                    }
+                    newElement.setAttribute("data-block", "0");
+                    newElement.setAttribute("data-tight", parent.getAttribute("data-tight"));
+                    newElement.appendChild(itemElement.cloneNode(true));
+                    parent.parentNode.insertBefore(newElement, parent.nextSibling);
+                    itemElement.remove();
                 } else {
-                    element = document.createElement("ol");
-                    element.setAttribute("data-marker", "1.");
+                    // 所有 sibling 都不是任务项了，直接替换父容器类型
+                    let element;
+                    if (type === "list") {
+                        element = document.createElement("ul");
+                        element.setAttribute("data-marker", "*");
+                    } else {
+                        element = document.createElement("ol");
+                        element.setAttribute("data-marker", "1.");
+                    }
+                    element.setAttribute("data-block", "0");
+                    element.setAttribute("data-tight", parent.getAttribute("data-tight"));
+                    element.innerHTML = parent.innerHTML;
+                    parent.parentNode.replaceChild(element, parent);
                 }
-                element.setAttribute("data-block", "0");
-                element.setAttribute("data-tight", itemElement.parentElement.getAttribute("data-tight"));
-                element.innerHTML = itemElement.parentElement.innerHTML;
-                itemElement.parentElement.parentNode.replaceChild(element, itemElement.parentElement);
             }
         }
     }
